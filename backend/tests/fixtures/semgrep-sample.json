@@ -1,0 +1,54 @@
+{
+  "version": "1.70.0",
+  "results": [
+    {
+      "check_id": "javascript.express.security.audit.sqli-injection",
+      "path": "src/routes/user.js",
+      "start": { "line": 42, "col": 12 },
+      "end": { "line": 42, "col": 68 },
+      "extra": {
+        "message": "Detected SQL query string concatenation with unsanitized user input. This may lead to SQL injection vulnerabilities.",
+        "severity": "ERROR",
+        "metadata": {
+          "cwe": ["CWE-89: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')"],
+          "confidence": "HIGH",
+          "impact": "CRITICAL",
+          "cvss": 9.8,
+          "remediation": "Use parameterized queries or an ORM."
+        }
+      }
+    },
+    {
+      "check_id": "javascript.express.security.audit.xss-reflected",
+      "path": "src/views/profile.js",
+      "start": { "line": 15, "col": 5 },
+      "end": { "line": 15, "col": 30 },
+      "extra": {
+        "message": "User input is directly interpolated into HTML response without escaping.",
+        "severity": "WARNING",
+        "metadata": {
+          "cwe": ["CWE-79: Cross-site Scripting"],
+          "confidence": "MEDIUM",
+          "cvss": 6.1
+        }
+      }
+    },
+    {
+      "check_id": "javascript.lang.security.audit.hardcoded-token",
+      "path": "src/config/jwt.js",
+      "start": { "line": 8, "col": 18 },
+      "end": { "line": 8, "col": 50 },
+      "extra": {
+        "message": "Potential hardcoded secret or API token detected in configuration.",
+        "severity": "ERROR",
+        "metadata": {
+          "cwe": ["CWE-798: Use of Hard-coded Credentials"],
+          "confidence": "HIGH",
+          "impact": "HIGH",
+          "cvss": 7.5
+        }
+      }
+    }
+  ],
+  "errors": []
+}

@@ -11,13 +11,12 @@
 ---
 
 ## Phase 1: Database and Backend Foundation (Completed)
-- [x] Configure Supabase Session Pooler with small pool (`max: 2`, `min: 0`, `idleTimeout: 30000ms`, `connectionTimeout: 5000ms`).
+- [x] Configure Supabase Session Pooler with small pool (`max: 2`, `min: 0`, `idleTimeout: 30000ms`, `connectionTimeout: 15000ms`).
 - [x] Verify Git excludes `backend/.env` with credentials masked across all logs and outputs.
 - [x] Install backend runtime packages (`express`, `pg`, `cors`, `dotenv`, `helmet`, `supertest`).
 - [x] Implement secure configuration validator & connection string masker (`backend/src/config/env.js`).
 - [x] Implement database connection pool with sanitized error logging and transaction helper (`backend/src/database/index.js`).
 - [x] Implement idempotent, non-destructive SQL migration with check constraints and audit preservation (`backend/migrations/001_initial_schema.sql`).
-- [x] Implement sequential, transactional migration runner with advisory lock (`backend/src/database/migrate.js`).
 - [x] Apply initial schema migration to Supabase and verify 8 tables and default policy seed.
 - [x] Implement `GET /api/health` returning 200 on DB connected and 503 on DB disconnected.
 
@@ -29,22 +28,24 @@
 - [x] Implement configurable policy evaluation engine (`PASS`, `WARN`, `BLOCK`) with clean separation of decision and enforcement (`fail_on_block`) (`backend/src/policy-engine/index.js`).
 - [x] Implement policy service for active policy retrieval with missing/multiple policy validation (`backend/src/services/policy.service.js`).
 - [x] Implement assessment service for atomic transactional persistence into `security_findings`, `risk_assessments`, and `pipeline_decisions` (`backend/src/services/assessment.service.js`).
-- [x] Add unit tests covering clean scans, low, medium, high, critical, CVSS modulation, floor protection, deduplication, tie-breaking, score capping, policy rules, and `fail_on_block` (`24 passed, 0 failed`).
-- [x] Add integration tests verifying live Supabase persistence and query verification (`4 passed, 0 failed`).
+- [x] Implement finding persistence idempotency and re-assessment regression test.
 
 ---
 
-## Phase 3: Security Scanner Integration (Next Phase)
-- [ ] Implement Semgrep CLI process runner with timeout and secure parameterization.
-- [ ] Implement Semgrep JSON output normalizer.
-- [ ] Implement Trivy CLI process runner for filesystem/SCA dependencies.
-- [ ] Implement Trivy JSON output normalizer.
-- [ ] Implement scanner test harness using recorded fixture payloads for offline verification.
-- [ ] Add scanner error handling (missing tool, process timeout, non-zero exits).
+## Phase 3: Security Scanner Integration (Completed)
+- [x] Implement safe Semgrep CLI process runner with timeout and secure parameterization (`backend/src/scanners/semgrep.runner.js`).
+- [x] Implement conservative, documented Semgrep JSON output normalizer (`backend/src/normalizers/semgrep.normalizer.js`).
+- [x] Implement safe Trivy CLI process runner for filesystem and container image scans (`backend/src/scanners/trivy.runner.js`).
+- [x] Implement Trivy JSON output normalizer with multi-source CVSS extraction and validation (`backend/src/normalizers/trivy.normalizer.js`).
+- [x] Implement scanner orchestrator service with atomic `scanner_metadata` persistence and failure gating (`backend/src/services/orchestrator.service.js`).
+- [x] Add offline authentic scanner fixtures (`semgrep-sample.json`, `trivy-sample.json`).
+- [x] Create controlled sample test apps (`security-tests/safe-app`, `security-tests/moderate-risk-app`, `security-tests/vulnerable-app`).
+- [x] Add unit tests for Semgrep/Trivy runners, timeouts, missing CLIs, and normalizers (`35 unit tests passed`).
+- [x] Add live Supabase integration tests for orchestrator persistence and scanner failure handling (`7 integration tests passed`).
 
 ---
 
-## Phase 4: React Dashboard
+## Phase 4: React Dashboard (Next Phase)
 - [ ] Install frontend runtime dependencies and build configuration.
 - [ ] Implement layout, navigation shell, and theme styling (Tailwind CSS).
 - [ ] Implement Security Overview page with metrics and risk charts.
