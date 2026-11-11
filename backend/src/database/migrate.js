@@ -2,13 +2,20 @@ const fs = require('fs');
 const path = require('path');
 const { getPool, closePool, sanitizeDbError } = require('./index');
 
+// Unique 64-bit integer advisory lock key for this application's migrations
+const MIGRATION_ADVISORY_LOCK_ID = 82741928374;
+
 async function runMigrations() {
   const pool = getPool();
   const client = await pool.connect();
 
   try {
-    console.log('[Migration] Checking migration tracking table...');
-    // Ensure migrations history table exists (outside transaction so it is always present)
+    console.log('[Migration] Acquiring PostgreSQL advisory lock...');
+    // pg_advisory_lock ensures only one migration process runs at any time across instances
+    await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_ADVISORY_LOCK_ID]);
+    console.log('[Migration] Advisory lock acquired.');
+
+    // Ensure migrations history table exists
     await client.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         id SERIAL PRIMARY KEY,
@@ -44,7 +51,7 @@ async function runMigrations() {
       const filePath = path.join(migrationsDir, file);
       const sql = fs.readFileSync(filePath, 'utf8');
 
-      // Execute transactionally
+      // Execute transactionally: rollback and fail fast if any statement encounters an error
       try {
         await client.query('BEGIN');
         await client.query(sql);
@@ -62,6 +69,12 @@ async function runMigrations() {
 
     console.log(`[Migration] Finished. ${appliedCount} new migration(s) applied.`);
   } finally {
+    try {
+      await client.query('SELECT pg_advisory_unlock($1)', [MIGRATION_ADVISORY_LOCK_ID]);
+      console.log('[Migration] Advisory lock released.');
+    } catch (unlockErr) {
+      console.error('[Migration Lock Release Warning]:', sanitizeDbError(unlockErr).message);
+    }
     client.release();
   }
 }
@@ -79,4 +92,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { runMigrations };
+module.exports = { runMigrations, MIGRATION_ADVISORY_LOCK_ID };
