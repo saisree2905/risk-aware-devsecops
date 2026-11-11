@@ -1,0 +1,32 @@
+{
+  "name": "risk-aware-backend",
+  "version": "1.0.0",
+  "description": "Risk-Aware Automated Security Framework Backend API & Risk Engine",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test tests/**/*.test.js",
+    "migrate": "node src/database/migrate.js"
+  },
+  "keywords": [
+    "devsecops",
+    "security",
+    "ci-cd",
+    "risk-engine",
+    "trivy",
+    "semgrep"
+  ],
+  "author": "Mohan Babu University - Batch A4-1",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}
