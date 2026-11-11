@@ -1,42 +1,40 @@
 # Project Implementation Tasks
 
-## Phase 0: Project Foundation
+## Phase 0: Project Foundation (Completed)
 - [x] Inspect workspace, OS, memory, Node, npm, Git, and database availability.
 - [x] Establish isolated Git repository in workspace root (`Saisree-DevSecOps`).
 - [x] Create project directory tree (`frontend`, `backend`, `security-tests`, `docker`, `.github`, `docs`).
 - [x] Create safe `.gitignore` and `.env.example` templates.
 - [x] Create frontend and backend configuration baselines (`package.json`, `vite.config.js`, `tailwind.config.js`).
-- [x] Establish project management tracking docs (`README.md`, `PROJECT_CONTEXT.md`, `TASKS.md`, `DECISIONS.md`, `HANDOFF.md`, `docs/IMPLEMENTATION_STATUS.md`).
+- [x] Establish project management tracking docs.
 
 ---
 
-## Phase 1: Database and Backend Foundation (In Progress - Ready for Migration Approval)
+## Phase 1: Database and Backend Foundation (Completed)
 - [x] Configure Supabase Session Pooler with small pool (`max: 2`, `min: 0`, `idleTimeout: 30000ms`, `connectionTimeout: 5000ms`).
 - [x] Verify Git excludes `backend/.env` with credentials masked across all logs and outputs.
 - [x] Install backend runtime packages (`express`, `pg`, `cors`, `dotenv`, `helmet`, `supertest`).
 - [x] Implement secure configuration validator & connection string masker (`backend/src/config/env.js`).
 - [x] Implement database connection pool with sanitized error logging and transaction helper (`backend/src/database/index.js`).
-- [x] Implement idempotent, non-destructive SQL migration file (`backend/migrations/001_initial_schema.sql`).
-- [x] Implement sequential, transactional migration runner (`backend/src/database/migrate.js`).
-- [x] Implement Express server, security headers, CORS, and centralized error handling (`backend/src/app.js`, `backend/src/index.js`, `backend/src/middleware/errorHandler.js`).
-- [x] Implement `GET /api/health` returning 200 on DB connected and 503 on DB disconnected (`backend/src/routes/health.routes.js`, `backend/src/controllers/health.controller.js`).
-- [x] Implement isolated unit tests with mock DB (`backend/tests/unit/health.unit.test.js` - 6/6 passed).
-- [x] Implement live integration tests against Supabase (`backend/tests/integration/health.integration.test.js` - 2/2 passed).
-- [ ] **Awaiting Student Approval**: Apply `001_initial_schema.sql` migration to Supabase database.
+- [x] Implement idempotent, non-destructive SQL migration with check constraints and audit preservation (`backend/migrations/001_initial_schema.sql`).
+- [x] Implement sequential, transactional migration runner with advisory lock (`backend/src/database/migrate.js`).
+- [x] Apply initial schema migration to Supabase and verify 8 tables and default policy seed.
+- [x] Implement `GET /api/health` returning 200 on DB connected and 503 on DB disconnected.
 
 ---
 
-## Phase 2: Risk and Policy Engines
-- [ ] Define normalized finding data contract and validator.
-- [ ] Implement deterministic risk assessment engine formula.
-- [ ] Implement unit tests for risk scoring across various severities and context factors.
-- [ ] Implement configurable policy evaluation engine (PASS, WARN, BLOCK).
-- [ ] Implement policy evaluation unit tests covering all three decision branches.
-- [ ] Store policy configuration and version history schema.
+## Phase 2: Risk and Policy Engines (Completed)
+- [x] Implement deterministic finding scoring with 85% severity floor protection against low CVSS (`backend/src/risk-engine/index.js`).
+- [x] Implement discrete bounded aggregate risk formula with dominant-finding tie-breaking and duplicate deduplication.
+- [x] Implement configurable policy evaluation engine (`PASS`, `WARN`, `BLOCK`) with clean separation of decision and enforcement (`fail_on_block`) (`backend/src/policy-engine/index.js`).
+- [x] Implement policy service for active policy retrieval with missing/multiple policy validation (`backend/src/services/policy.service.js`).
+- [x] Implement assessment service for atomic transactional persistence into `security_findings`, `risk_assessments`, and `pipeline_decisions` (`backend/src/services/assessment.service.js`).
+- [x] Add unit tests covering clean scans, low, medium, high, critical, CVSS modulation, floor protection, deduplication, tie-breaking, score capping, policy rules, and `fail_on_block` (`24 passed, 0 failed`).
+- [x] Add integration tests verifying live Supabase persistence and query verification (`4 passed, 0 failed`).
 
 ---
 
-## Phase 3: Security Scanner Integration
+## Phase 3: Security Scanner Integration (Next Phase)
 - [ ] Implement Semgrep CLI process runner with timeout and secure parameterization.
 - [ ] Implement Semgrep JSON output normalizer.
 - [ ] Implement Trivy CLI process runner for filesystem/SCA dependencies.
