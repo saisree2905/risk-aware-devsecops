@@ -1,48 +1,41 @@
 # Project Handoff & Session State
 
 ## Current State
-- **Active Phase**: Phase 0 (Project Foundation) Completed.
-- **Next Phase**: Phase 1 (Database and Backend Foundation).
-- **Status**: Waiting for student review and approval before proceeding with Phase 1.
+- **Active Phase**: Phase 1 (Database and Backend Foundation).
+- **Milestone Reached**: Backend structure, TLS configuration, health API, connection pool, unit test suite (6/6 passing), and integration test suite (2/2 passing against live Supabase) completed.
+- **Current Blocker / Stop Point**: Awaiting student review and approval before executing `npm run migrate` to apply `001_initial_schema.sql` to the live Supabase database.
 
 ## Environment Summary
 - **OS**: Windows 10 Pro (Build 19045)
 - **Host**: Lenovo ThinkPad T440 (Intel Core i5-4300U)
-- **Memory**: ~8.0 GB RAM total (~645 MB currently free)
 - **Node.js**: v22.19.0
 - **npm**: 11.0.0
-- **Git**: 2.51.0.windows.1 (Repository initialized at `c:\Users\Admin\OneDrive\Desktop\Saisree-DevSecOps`)
-- **PostgreSQL**: Not installed locally (`psql` command not found)
+- **Database**: Supabase Session Pooler (Mumbai `ap-south-1`)
+- **Connection Pool**: `max: 2`, `min: 0`, `idleTimeout: 30000ms`, `connectionTimeout: 5000ms`, `rejectUnauthorized: false`
+- **Security Check**: `backend/.env` is strictly excluded by Git; connection URLs and passwords masked across all logs and error handlers.
 
-## Files Created / Modified in Phase 0
-- `.gitignore`: Configured for Node, builds, logs, and scanner caches.
-- `.env.example`: Root, backend, and frontend environment variable templates.
-- `backend/package.json`: Express, PG, Helmet, CORS configuration (CommonJS).
-- `frontend/package.json`: Vite, React 18, Tailwind CSS, Axios, Recharts configuration.
-- `frontend/vite.config.js`: Vite server and React plugin setup.
-- `frontend/tailwind.config.js`: Tailwind content scanning setup.
-- `frontend/postcss.config.js`: PostCSS configuration.
-- `frontend/index.html`: Base HTML template.
-- `README.md`: Capstone project documentation.
-- `PROJECT_CONTEXT.md`: Project constraints, institution info, and architecture goals.
-- `TASKS.md`: Comprehensive phase-by-phase implementation tracking.
-- `DECISIONS.md`: Architectural Decision Records (ADRs 001–004).
-- `HANDOFF.md`: This file.
-- `docs/IMPLEMENTATION_STATUS.md`: Phase status and verification ledger.
+## Files Created / Modified in Phase 1
+- `backend/.env`: Local credentials file (ignored by Git, never committed).
+- `backend/.env.example`: Safe environment template with masked values.
+- `backend/package.json`: NPM scripts for `test:unit`, `test:integration`, `migrate`.
+- `backend/src/config/env.js`: Environment validator and credential masking utility.
+- `backend/src/database/index.js`: Resilient `pg.Pool` manager, transaction wrapper, error sanitizer.
+- `backend/migrations/001_initial_schema.sql`: Idempotent DDL for 7 verified project tables + pre-seeded standard policy.
+- `backend/src/database/migrate.js`: Transactional, sequential migration runner with rollback on failure.
+- `backend/src/middleware/errorHandler.js`: Centralized error sanitizer preventing credential leakage.
+- `backend/src/controllers/health.controller.js`: Health endpoint returning 200 (connected) or 503 (disconnected).
+- `backend/src/routes/health.routes.js`: Health router registration.
+- `backend/src/app.js`: Express app configured with Helmet, CORS, and JSON parser.
+- `backend/src/index.js`: Server bootloader and connection check.
+- `backend/tests/unit/health.unit.test.js`: 6 unit tests (all passing).
+- `backend/tests/integration/health.integration.test.js`: 2 live integration tests against Supabase (all passing).
 
-## Commands Executed in Phase 0
-1. `node -v`, `npm -v`, `git --version`, `psql --version`, `Get-CimInstance Win32_OperatingSystem`
-2. `git rev-parse --show-toplevel` (discovered parent `C:\Users\Admin` git root)
-3. `git init -b main` (isolated local repository in `Saisree-DevSecOps`)
-4. Directory creation script for all submodules.
+## Verification Test Results
+- `npm run test:unit`: 6 tests passing (0 failed). Tests URL masking, error sanitization, root metadata, 503 on disconnected DB, and 200 on connected DB.
+- `npm run test:integration`: 2 tests passing (0 failed). Tests live Supabase pooler ping (`SELECT 1 AS alive`) and live `GET /api/health` returning 200.
 
-## Blockers & Missing Prerequisites
-- **PostgreSQL**: `psql` is not installed or not in PATH. Needs discussion in Phase 1 (local PostgreSQL installer vs. lightweight cloud instance such as Neon/Supabase/Aiven, or approved lightweight local installer).
-- **Local Scanner Binaries**: Neither `semgrep` nor `trivy` are installed locally. Scanner execution in CI will run on GitHub Actions; local mock/fixture tests will be prepared for offline risk-engine verification.
-
-## Exact Next Actions for Phase 1
-1. Present the student with options for PostgreSQL setup (Lightweight free cloud PostgreSQL vs. Local Windows PostgreSQL installer) without modifying any system settings yet.
-2. Install backend dependencies (`express`, `pg`, `cors`, `dotenv`, `helmet`).
-3. Create SQL migrations (`001_initial_schema.sql`) for scans, findings, risk_assessments, policies, and decisions.
-4. Build `backend/src/index.js` and `GET /api/health` with database ping.
-5. Write and verify unit test for backend health check.
+## Exact Next Step
+Once student approval is given:
+1. Run `npm run migrate` in `backend/` to apply `001_initial_schema.sql` to Supabase.
+2. Verify all 7 tables and `schema_migrations` are created and seeded with default policy.
+3. Complete Phase 1 and prepare for Phase 2 (Risk and Policy Engines).
