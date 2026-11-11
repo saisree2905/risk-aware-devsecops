@@ -5,7 +5,7 @@
  * Rejects ambiguous states (multiple active policies) and missing active policies.
  */
 
-const { query } = require('../database');
+const db = require('../database');
 const { PolicyConfigurationError } = require('../policy-engine');
 
 async function getActivePolicy() {
@@ -18,7 +18,7 @@ async function getActivePolicy() {
     ORDER BY updated_at DESC;
   `;
 
-  const { rows } = await query(sql);
+  const { rows } = await db.query(sql);
 
   if (!rows || rows.length === 0) {
     throw new PolicyConfigurationError('No active security policy found in database. Configure an active policy to evaluate scans.');
