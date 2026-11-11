@@ -1,0 +1,183 @@
+name: Security Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-scans:
+    name: Security Scanners & Policy Evaluation Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Semgrep
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install semgrep
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
+      - name: Create Reports Directory
+        run: mkdir -p reports
+
+      # -----------------------------------------------------------------------
+      # 1. Semgrep SAST Scanning
+      # -----------------------------------------------------------------------
+      - name: Run Semgrep SAST Scan
+        id: semgrep_scan
+        continue-on-error: true
+        run: |
+          echo "Running Semgrep against repository..."
+          semgrep scan --config auto --json -o reports/semgrep-report.json
+
+      # -----------------------------------------------------------------------
+      # 2. Trivy Filesystem / SCA Scanning
+      # -----------------------------------------------------------------------
+      - name: Run Trivy Filesystem Scan
+        id: trivy_fs_scan
+        continue-on-error: true
+        run: |
+          echo "Running Trivy filesystem scan..."
+          trivy fs --format json --output reports/trivy-fs-report.json .
+
+      # -----------------------------------------------------------------------
+      # 3. Docker Image Build & Trivy Image Scanning
+      # -----------------------------------------------------------------------
+      - name: Build Backend Docker Image
+        id: docker_build
+        run: |
+          echo "Building backend Docker image on Ubuntu runner..."
+          docker build -t risk-aware-backend:ci -f backend/Dockerfile backend
+
+      - name: Run Trivy Image Scan
+        id: trivy_image_scan
+        continue-on-error: true
+        run: |
+          echo "Running Trivy container image scan..."
+          trivy image --format json --output reports/trivy-image-report.json risk-aware-backend:ci
+
+      # -----------------------------------------------------------------------
+      # 4. Upload Scanner Report Artifacts (Retains partials/diagnostics)
+      # -----------------------------------------------------------------------
+      - name: Upload Scan Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-scan-reports
+          path: reports/
+          retention-days: 14
+
+      # -----------------------------------------------------------------------
+      # 5. Validate Scanner Step Outcomes & Report Integrity
+      # -----------------------------------------------------------------------
+      - name: Validate Scanner Outcomes and Reports
+        run: |
+          echo "Verifying scanner execution outcomes..."
+          FAILED=0
+
+          if [ "${{ steps.semgrep_scan.outcome }}" != "success" ]; then
+            echo "::error::Semgrep scanner execution failed."
+            FAILED=1
+          fi
+
+          if [ "${{ steps.trivy_fs_scan.outcome }}" != "success" ]; then
+            echo "::error::Trivy filesystem scanner execution failed."
+            FAILED=1
+          fi
+
+          if [ "${{ steps.trivy_image_scan.outcome }}" != "success" ]; then
+            echo "::error::Trivy image scanner execution failed."
+            FAILED=1
+          fi
+
+          echo "Verifying scanner report file existence, non-emptiness, and valid JSON structure..."
+          node -e '
+            const fs = require("fs");
+            const requiredReports = [
+              { name: "Semgrep", path: "reports/semgrep-report.json" },
+              { name: "Trivy Filesystem", path: "reports/trivy-fs-report.json" },
+              { name: "Trivy Image", path: "reports/trivy-image-report.json" }
+            ];
+
+            let errorCount = 0;
+            for (const report of requiredReports) {
+              if (!fs.existsSync(report.path)) {
+                console.error(`::error::Report file missing for ${report.name}: ${report.path}`);
+                errorCount++;
+                continue;
+              }
+              const content = fs.readFileSync(report.path, "utf8").trim();
+              if (content.length === 0) {
+                console.error(`::error::Report file is empty for ${report.name}: ${report.path}`);
+                errorCount++;
+                continue;
+              }
+              try {
+                JSON.parse(content);
+                console.log(`Verified ${report.name} report: valid JSON (${content.length} bytes).`);
+              } catch (err) {
+                console.error(`::error::Report file contains invalid JSON for ${report.name}: ${err.message}`);
+                errorCount++;
+              }
+            }
+
+            if (errorCount > 0) {
+              process.exit(1);
+            }
+          ' || FAILED=1
+
+          if [ $FAILED -ne 0 ]; then
+            echo "::error::Scanner verification failed. Aborting ingestion gate evaluation to fail closed."
+            exit 1
+          fi
+
+          echo "All three scanners executed successfully and produced valid JSON reports."
+
+      # -----------------------------------------------------------------------
+      # 6. Policy Gate Evaluation via Backend Ingestion API
+      # -----------------------------------------------------------------------
+      - name: Evaluate Security Gate
+        env:
+          API_URL: ${{ secrets.RISK_API_URL }}
+          API_KEY: ${{ secrets.RISK_API_KEY }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          if [ -z "$API_URL" ] || [ -z "$API_KEY" ]; then
+            echo "::error::Backend evaluation API secrets (RISK_API_URL, RISK_API_KEY) are not configured."
+            echo "Deployment dependency: The backend service must be deployed with HTTPS access and secrets added to repository settings."
+            echo "Failing closed to prevent unverified bypass of security policy gate."
+            exit 1
+          fi
+
+          # API_KEY is read securely from environment variable (process.env.API_KEY)
+          node backend/src/cli/ci-evaluate.js \
+            --api-url "$API_URL" \
+            --commit "$GITHUB_SHA" \
+            --branch "$GITHUB_REF_NAME" \
+            --trigger "$GITHUB_EVENT_NAME" \
+            --semgrep reports/semgrep-report.json \
+            --trivy-fs reports/trivy-fs-report.json \
+            --trivy-image reports/trivy-image-report.json

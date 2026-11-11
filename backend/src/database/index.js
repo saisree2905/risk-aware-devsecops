@@ -20,16 +20,15 @@ function getSslConfig() {
     return false;
   }
   // If user provided a CA certificate path
-  if (process.env.DB_CA_CERT_PATH && fs.existsSync(process.env.DB_CA_CERT_PATH)) {
+  if (config.caCertPath && fs.existsSync(config.caCertPath)) {
     return {
-      ca: fs.readFileSync(process.env.DB_CA_CERT_PATH, 'utf8'),
+      ca: fs.readFileSync(config.caCertPath, 'utf8'),
       rejectUnauthorized: true,
     };
   }
-  // Standard Supabase Session Pooler configuration:
-  // Supabase pooler terminates SSL with internal certificates; rejectUnauthorized: false is the documented setting
-  const rejectUnauthorized = process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false';
-  return { rejectUnauthorized };
+  // Certificate verification enabled by default (rejectUnauthorized: true)
+  // unless explicitly configured otherwise via DB_SSL_REJECT_UNAUTHORIZED=false
+  return { rejectUnauthorized: config.sslRejectUnauthorized };
 }
 
 function getPool() {
@@ -103,6 +102,7 @@ async function closePool() {
 
 module.exports = {
   getPool,
+  getSslConfig,
   query,
   withTransaction,
   checkConnection,

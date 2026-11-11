@@ -45,7 +45,15 @@
 
 ---
 
-## Phase 4: React Dashboard (Next Phase)
+## Phase 4: CI/CD Pipeline Integration (Completed / In Progress)
+- [x] **Step 1: Docker Readiness**: Multi-stage production `backend/Dockerfile` and `backend/.dockerignore` with non-root user.
+- [x] **Step 2: Secure Scan Ingestion API**: `POST /api/scans/ingest`, timing-safe `apiKeyAuth`, mandatory scanner coverage validator (`semgrep`, `trivy_fs`, `trivy_image`), 10MB payload limit.
+- [x] **Step 3: CI Evaluation Integration**: CLI evaluation client (`backend/src/cli/ci-evaluate.js`) and GitHub Actions workflow (`.github/workflows/security-pipeline.yml`) with fail-closed gate evaluation.
+- [x] **Step 4: Production Readiness & Server Lifecycle**: Explicit `0.0.0.0` host binding, graceful shutdown (`SIGTERM`/`SIGINT`), in-flight request draining, bounded timeout, dedicated `/api/health/live` and `/api/health/ready` probes, strict production API_KEY validation, strict production TLS verification enforcement; 73/73 unit tests passing.
+
+---
+
+## Phase 5: React Dashboard (Next Phase)
 - [ ] Install frontend runtime dependencies and build configuration.
 - [ ] Implement layout, navigation shell, and theme styling (Tailwind CSS).
 - [ ] Implement Security Overview page with metrics and risk charts.
