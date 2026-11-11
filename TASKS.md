@@ -53,15 +53,41 @@
 
 ---
 
-## Phase 5: React Dashboard (Next Phase)
-- [ ] Install frontend runtime dependencies and build configuration.
-- [ ] Implement layout, navigation shell, and theme styling (Tailwind CSS).
-- [ ] Implement Security Overview page with metrics and risk charts.
-- [ ] Implement Vulnerability Analysis page with severity filtering and search.
-- [ ] Implement Pipeline Decisions page with decision rationale breakdown.
-- [ ] Implement Scan History page with timeline and past results.
-- [ ] Implement Reports page with scan audit details.
-- [ ] Connect dashboard pages to real Express REST API endpoints.
+## Phase 5: React Dashboard (In Progress)
+- [x] **Step 1: Backend API Read Support & Safe Authentication Split**:
+  - Keep `POST /api/scans/ingest` strictly protected by timing-safe `apiKeyAuth`.
+  - Expose public, rate-limited read endpoints for dashboard consumption (`GET /api/dashboard/stats`, `GET /api/scans`, `GET /api/scans/:id`, `GET /api/scans/:id/full`, `GET /api/scans/:id/findings`, `GET /api/policies`).
+  - Implement query parameter validation, pagination limits (max 100 ceiling), and filter whitelisting.
+  - Implement in-memory sliding window rate limiter (`backend/src/middleware/rateLimiter.js`).
+  - Sanitize and allowlist all response fields; strictly exclude `raw_payload`.
+  - Add comprehensive unit tests (85/85 unit tests passing across 11 test suites).
+- [x] **Step 2: Frontend Core Foundation & Layout Navigation**:
+  - Install dependencies (React 18, React Router v7, Tailwind CSS 3, Lucide React, Axios, Recharts).
+  - Implement full theme management with persistent dark/light mode toggle (`useTheme.jsx`) and system preference fallback.
+  - Implement reusable UI design system (`Card`, `Badge`, `StatCard`, `Spinner`, `EmptyState`, `ErrorBoundary`).
+  - Implement responsive application layout (`DashboardLayout.jsx`, `Sidebar.jsx`, `Header.jsx`) with mobile drawer.
+  - Establish backend API services layer (`api.js`, `dashboardService.js`, `scanService.js`, `policyService.js`).
+  - Implement foundation pages for all 7 views (`Overview`, `Scans`, `ScanDetails`, `Findings`, `Risk`, `Policies`, `Scanners`).
+  - Verified Vite production build (`dist/` generated in 16.15s with 0 errors).
+- [x] **Step 3: Interactive Visualizations, Analytics & Deep-Dive Views**:
+  - Implemented interactive Recharts `SeverityDonutChart` with custom tooltips, legend, and centered total badge.
+  - Implemented Recharts `RiskTrendChart` with chronological scan progression and active policy WARN/BLOCK reference ceiling lines.
+  - Made the header commit badge dynamic using live scan data (`latestScan.commit_hash.slice(0, 7)`).
+  - Corrected Pipeline Gate Pass Rate to reflect genuine PASS decisions, providing clear secondary non-blocking rate (PASS + WARN).
+  - Displayed completed, running, and failed scan counts accurately from live backend metrics.
+  - Enhanced `ScanHistoryPage` with full server-side pagination, decision pills, status filter dropdown, and branch search.
+  - Enhanced `FindingsExplorerPage` with search by rule/CWE/file, scanner filter (`semgrep`, `trivy_fs`, `trivy_image`), severity pills, server-side pagination, and remediation drawers with fixed version info.
+  - Enhanced `ScanDetailsPage` with comprehensive scan audit, policy threshold comparisons, scanner execution telemetry, and deep-linking to findings.
+  - Improved `RiskAnalysisPage` with formula architecture, mathematical explanations, 85% floor protections, and bounded density bonus justifications.
+  - Improved `ScannerTelemetryPage` with transparency distinctions between synthetic `fixture-mock` runs and production CI executions.
+  - Verified with frontend production build (`2097 modules transformed, 0 errors in 18.76s`), 85/85 backend unit tests passing, and 10/10 live Supabase integration tests passing.
+- [x] **Step 4: Final Integration & System Validation**:
+  - Verified complete end-to-end CI/CD pipeline from GitHub push through Semgrep, Trivy filesystem, Docker build, Trivy image scan, backend ingestion, and Supabase persistence.
+  - Confirmed fail-closed policy enforcement: BLOCK triggers non-zero exit code (`1`), PASS and WARN exit cleanly (`0`).
+  - Audited dashboard integration across all 7 views with live Supabase telemetry and accurate charts.
+  - Validated failure simulation: malformed UUIDs (HTTP 400), non-existent scans (HTTP 404), rate-limit bursts (HTTP 429), and fail-closed scanner evaluation.
+  - Completed security audit: zero secrets in frontend source or compiled distribution bundles, parameterized queries, public rate-limiting, and timing-safe API key authentication on ingestion.
+  - Verified frontend production build (2097 modules, 0 errors in 16.10s) and full test suite (85 unit + 10 integration = 95/95 tests passing).
 
 ---
 
