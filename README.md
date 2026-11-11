@@ -99,3 +99,6 @@ Saisree-DevSecOps/
 ## 6. License & Academic Integrity
 
 Developed for academic evaluation at Mohan Babu University. All experimental findings, benchmark numbers, and scanner detections are verified with reproducible test fixtures.
+
+
+Security Pipeline Demonstration Test - November 2026
