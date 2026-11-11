@@ -23,6 +23,10 @@ WORKDIR /usr/src/app
 ENV NODE_ENV=production
 ENV PORT=5000
 
+# Security hardening: upgrade Alpine zlib (CVE-2026-4738) and remove npm/npx tooling from production runtime
+RUN apk update && apk upgrade --no-cache zlib && rm -rf /var/cache/apk/* \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 # Security: run as non-root user (built into node alpine image)
 USER node
 
