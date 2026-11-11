@@ -206,6 +206,7 @@ function calculateRisk(rawFindings = []) {
     },
     compoundingBonus,
     assessmentRationale: rationaleParts.join(' '),
+    deduplicatedFindings: deduplicated,
     deduplicatedCount: deduplicated.length,
     rawCount: rawFindings.length,
   };

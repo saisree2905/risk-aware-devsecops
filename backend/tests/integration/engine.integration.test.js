@@ -102,4 +102,52 @@ describe('Integration Tests: Policy & Assessment Persistence in Supabase', () =>
     assert.strictEqual(dbScan[0].status, 'COMPLETED');
     assert.ok(dbScan[0].completed_at);
   });
+
+  test('Idempotency Regression: Re-running assessment on the same scan updates records without duplicates', async () => {
+    const findings = [
+      {
+        scanner_name: 'semgrep',
+        vuln_id: 'CWE-89',
+        title: 'SQL Injection in user lookup',
+        severity: 'CRITICAL',
+        cvss_score: 9.8,
+        affected_component: 'backend/src/routes/user.js',
+      },
+      {
+        scanner_name: 'trivy',
+        vuln_id: 'CVE-2023-44487',
+        title: 'HTTP/2 Rapid Reset Attack',
+        severity: 'HIGH',
+        cvss_score: 7.5,
+        affected_component: 'express@4.18.2',
+      },
+    ];
+
+    // Re-run the assessment a second time for the exact same scan ID
+    await processScanAssessment({
+      scanId: testScanId,
+      findings,
+    });
+
+    // Verify findings count is still exactly 2 (no duplicate rows created)
+    const { rows: dbFindings } = await query(
+      'SELECT id FROM security_findings WHERE scan_id = $1;',
+      [testScanId]
+    );
+    assert.strictEqual(dbFindings.length, 2);
+
+    // Verify risk assessment count is still exactly 1
+    const { rows: dbAssessments } = await query(
+      'SELECT id FROM risk_assessments WHERE scan_id = $1;',
+      [testScanId]
+    );
+    assert.strictEqual(dbAssessments.length, 1);
+
+    // Verify pipeline decisions count is still exactly 1
+    const { rows: dbDecisions } = await query(
+      'SELECT id FROM pipeline_decisions WHERE scan_id = $1;',
+      [testScanId]
+    );
+    assert.strictEqual(dbDecisions.length, 1);
+  });
 });

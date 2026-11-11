@@ -29,8 +29,11 @@ async function processScanAssessment({ scanId, findings = [], policyOverride = n
 
   // 4. Atomic database persistence
   await withTransaction(async (client) => {
-    // A. Insert normalized findings (if any)
-    for (const f of findings) {
+    // A. Ensure findings persistence idempotency: delete prior findings for this scan run
+    await client.query('DELETE FROM security_findings WHERE scan_id = $1', [scanId]);
+
+    // B. Insert deduplicated, normalized findings
+    for (const f of riskAssessment.deduplicatedFindings || findings) {
       await client.query(
         `INSERT INTO security_findings (
           scan_id, scanner_name, finding_id, vuln_id, title, description,
